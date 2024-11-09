@@ -1,7 +1,7 @@
 
 
 
-Boot Multi User | enter
+#Boot Multi User | enter
 
 
 #To select the keyboard layout, enter a number
