@@ -45,7 +45,7 @@ region | f2
 
 #Edit the date and time as necessary
 
-time | f2
+date | f2
 
 #System Root Password
 
