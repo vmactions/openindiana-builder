@@ -1,0 +1,64 @@
+
+
+
+Welcome | enter
+
+
+#To select the keyboard layout, enter a number
+
+keyboard | enter
+
+
+#select the language you wish to use, enter a number
+
+language | enter
+
+
+#Welcome to the OpenIndiana illumos-1edba515a3 installation menu
+
+Install OpenIndiana | enter
+
+
+#Thanks for choosing to install OpenIndiana!
+
+choosing | f2
+
+
+#Where should OpenIndiana be installed?
+
+Where  | f2; sleep1; tab; sleep 1; enter
+
+
+
+#OpenIndiana can be installed on the whole disk or a partition on the disk
+
+partition | f2
+
+
+#Enter a name for this computer that identifies
+
+name | tab; f2
+
+#Select the region that contains your time zone
+
+region | f2
+
+#Edit the date and time as necessary
+
+time | f2
+
+#System Root Password
+
+password | f2; tab; enter
+
+#Review the settings below before installing. Go back (F3) to make changes
+
+Review | f2
+
+#
+Installation Complete | f8
+
+
+
+
+
