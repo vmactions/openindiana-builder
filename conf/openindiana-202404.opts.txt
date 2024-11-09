@@ -26,7 +26,7 @@ choosing | f2
 
 #Where should OpenIndiana be installed?
 
-Where  | f2; sleep1; tab; sleep 1; enter
+Where  | f2; sleep 1; tab; sleep 1; enter
 
 
 
