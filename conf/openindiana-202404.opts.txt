@@ -56,7 +56,7 @@ password | f2; tab; enter
 Review | f2
 
 #
-Installation Complete | f8
+stallation Complete | f8
 
 
 
