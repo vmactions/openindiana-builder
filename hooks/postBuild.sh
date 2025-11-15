@@ -228,6 +228,8 @@ echo '=================== start ===='
 
 svcadm disable application/desktop-cache/input-method-cache:default
 
+svcadm disable autofs
+
 
 echo "openindiana" > /etc/nodename
 svcadm restart system/identity:node
@@ -266,9 +268,9 @@ bootadm set-menu timeout=1
 pkg update
 
 
-svcadm disable autofs
 
-umount /home
+
+
 
 
 
