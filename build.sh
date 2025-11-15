@@ -37,6 +37,11 @@ export VM_CPU
 export VM_USE_CONSOLE_BUILD
 export VM_USE_SSHROOT_BUILD_SSH
 export VM_NO_VNC_BUILD
+export VM_USE_NC_ENABLE_SSH
+export VM_USE_TELNET_ENABLE_SSH
+export VM_USE_BASH_ENABLE_SSH
+export VM_NIC
+
 
 ##############################################################
 
@@ -129,6 +134,14 @@ elif [ "$VM_VHD_LINK" ]; then
         gunzip -c "$_img.gz" > "$_img"
       fi
       qemu-img convert -f raw -O qcow2 -o preallocation=off "$_img" "$osname.qcow2"
+    elif [[ "$VM_VHD_LINK" == *"img.zst" ]]; then
+      _img="$osname.img"
+      if [ ! -e "$_img" ]; then
+        rm -f "$_img.zst"
+        $vmsh download "$VM_VHD_LINK" "$_img.zst"
+        zstd -f -d "$_img.zst" -o "$_img"
+      fi
+      qemu-img convert -f raw -O qcow2 -o preallocation=off "$_img" "$osname.qcow2"
     else
       if [ ! -e "$osname.qcow2.xz" ]; then
         $vmsh download "$VM_VHD_LINK" $osname.qcow2.xz
@@ -199,6 +212,7 @@ restart_and_wait() {
 
 
 if [ -z "$VM_NO_VNC_BUILD" ]; then
+  #switch back to use vnc
   export VM_USE_CONSOLE_BUILD=""
 fi
 
@@ -209,6 +223,7 @@ if [ ! -e ~/.ssh/id_rsa ] ; then
   ssh-keygen -f  ~/.ssh/id_rsa -q -N "" 
 fi
 
+rm -f enablessh.local
 cat enablessh.txt >enablessh.local
 
 
@@ -246,15 +261,42 @@ if [ "$VM_USE_SSHROOT_BUILD_SSH" ]; then
   ssh -vv root@$vmip pwd
   echo "ssh OK"
 else
-  inputKeys "string root; enter; sleep 1;"
+  echo "login as root at console."
+  inputKeys "enter"
+  inputKeys "enter"
+  sleep 20
+  inputKeys "enter"
+  inputKeys "enter"
+  inputKeys "string root; enter; sleep 5;"
   if [ "$VM_ROOT_PASSWORD" ]; then
     inputKeys "string $VM_ROOT_PASSWORD ; enter"
+    sleep 10
   fi
   inputKeys "enter"
-  sleep 2
+  sleep 20
+  inputKeys "enter"
 
   $vmsh screenText $osname
-  $vmsh inputFile $osname enablessh.local
+
+  if [ -e "hooks/enableNetwork.sh" ]; then
+    echo "hooks/enableNetwork.sh"
+    cat "hooks/enableNetwork.sh"
+    echo "To enabled network, we have to input throw stdin"
+    $vmsh inputFileStdIn "$osname" hooks/enableNetwork.sh
+    $vmsh screenText $osname
+    sleep 60
+  fi
+
+  if [ "$VM_USE_NC_ENABLE_SSH" ]; then
+    #for openbsd 7.7/7.8
+    $vmsh inputFileNC $osname enablessh.local
+  elif [ "$VM_USE_BASH_ENABLE_SSH" ]; then
+    #for openIndiana
+    $vmsh inputFileBash $osname enablessh.local
+  else
+    $vmsh inputFile $osname enablessh.local
+  fi
+  sleep 60
   $vmsh screenText $osname
   #sleep for the sshd server to restart
   sleep 10
@@ -273,13 +315,35 @@ echo "Sleep for the sshd to restart"
 sleep 10
 
 _retry=0
+_restarted=""
 while ! timeout 2 ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR $osname exit >/dev/null 2>&1; do
   echo "ssh is not ready, just wait."
   sleep 10
   _retry=$(($_retry + 1))
-  if [ $_retry -gt 10 ]; then
-    echo "ssh is failed."
-    exit 1
+  if [ $_retry -gt 100 ]; then
+    if [ "$_restarted" ]; then
+      echo "ssh is failed. restarted but still not running"
+      exit 1
+    fi
+    echo "ssh is failed. lets try restart the vm"
+    _restarted=1
+
+    #shutdown
+    if $vmsh isRunning $osname; then
+      if ! $vmsh shutdownVM $osname; then
+        echo "shutdown error"
+        exit 1
+      fi
+    fi
+
+    while $vmsh isRunning $osname; do
+      sleep 5
+    done
+    $vmsh closeConsole "$osname"
+
+    #start vm
+    start_and_wait
+    _retry=0
   fi
 done
 
@@ -291,6 +355,7 @@ echo "Host host" >>.ssh/config
 echo "     HostName  192.168.122.1" >>.ssh/config
 echo "     User $USER" >>.ssh/config
 echo "     ServerAliveInterval 1" >>.ssh/config
+
 
 EOF
 
@@ -312,7 +377,7 @@ if [ -e "hooks/postBuild.sh" ]; then
     echo "ssh is not ready, just wait."
     sleep 10
     _retry=$(($_retry + 1))
-    if [ $_retry -gt 10 ]; then
+    if [ $_retry -gt 100 ]; then
       echo "ssh is failed."
       exit 1
     fi
@@ -336,7 +401,20 @@ if [ -e "hooks/reboot.sh" ]; then
   scp hooks/reboot.sh $osname:/reboot.sh
 else
   ssh "$osname" "cat - >/reboot.sh" <<EOF
-sleep 5
+sleep 2
+for i in \$(seq 1 100) ; do 
+  if ssh host exit; then
+    break;
+  fi
+  sleep 3
+done;
+if ! ssh host exit; then
+  #still not connected
+  #shutdown
+  # $VM_SHUTDOWN_CMD
+  echo "Connection failed."
+fi
+
 ssh host sh <<END
 env | grep SSH_CLIENT | cut -d = -f 2 | cut -d ' ' -f 1 >$osname.rebooted
 
@@ -393,7 +471,8 @@ df -h
 
 ova="$output.qcow2"
 echo "Exporting $ova"
-$vmsh exportOVA $osname "$ova"
+xml="$output.xml"
+$vmsh exportOVA $osname "$ova" "$xml"
 
 cp ~/.ssh/id_rsa  $output-host.id_rsa
 
@@ -417,10 +496,30 @@ else
   if [ "$VM_SSHFS_PKG" ]; then
     ssh $osname sh <<<"$VM_INSTALL_CMD $VM_SSHFS_PKG"
   fi
-  if ssh $osname sh -c env | grep GITHUB_ ; then
+  if GITHUB_VMACTIONS=1 ssh $osname sh -c env | grep GITHUB_ ; then
     echo "SendEnv OK"
   else
     echo "SendEnv is not working"
+    echo "===============env===="
+    env
+    echo "=============ssh env=="
+    ssh $osname sh -c env
+    echo "=========check data==="
+    pwd
+    ls -lah .
+    ls -lah ~
+    ls -lah ~/.ssh
+    if [ -e ~/.ssh/config ]; then
+      cat ~/.ssh/config
+    fi
+    if [ -e ~/.ssh/config.d ]; then
+      cat ~/.ssh/config.d/*
+    fi
+    echo "====== check data in vm===="
+    ssh $osname ls -lah
+    ssh $osname ls -lah .ssh
+    ssh $osname cat .ssh/*
+    ssh $osname cat /etc/ssh/sshd_config
     exit 1
   fi
 

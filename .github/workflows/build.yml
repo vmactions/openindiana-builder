@@ -34,17 +34,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["202404"]
+        os: ["202510"]
     runs-on: ubuntu-24.04
     env:
-      SEC_VBOX : ${{ secrets.SEC_VBOX }}
+      SEC_VBOX : ${{ vars.SEC_VBOX }}
     steps:
-    - name: Free Disk Space (Ubuntu)
-      uses: jlumbroso/free-disk-space@main
-      with:
-        # this might remove tools that are actually needed,
-        # if set to "true" but frees about 6 GB
-        tool-cache: false
+#    - name: Free Disk Space (Ubuntu)
+#      uses: jlumbroso/free-disk-space@main
+#      with:
+#        # this might remove tools that are actually needed,
+#        # if set to "true" but frees about 6 GB
+#        tool-cache: false
     - uses: actions/checkout@v4
     - name: Creating Web console
       uses: vmactions/cf-tunnel@v0
@@ -65,5 +65,6 @@ jobs:
           openindiana-${{ matrix.os }}.qcow2.zst*
           openindiana-${{ matrix.os }}-id_rsa.pub
           openindiana-${{ matrix.os }}-host.id_rsa
+          openindiana-${{ matrix.os }}.xml
 
 
