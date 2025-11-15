@@ -20,6 +20,6 @@ How to use:
 
     Just clone the repo. and run:
     ```bash
-    bash build.sh conf/openindiana-202404.conf
+    bash build.sh conf/openindiana-202510.conf
     ```
    
