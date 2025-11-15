@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/vmactions/openindiana-builder/actions/workflows/build.yml/badge.svg)](https://github.com/vmactions/openindiana-builder/actions/workflows/build.yml)
 
-Latest: 
+Latest: v0.0.1
 
 
 The image builder for [openindiana-vm](https://github.com/vmactions/openindiana-vm)
