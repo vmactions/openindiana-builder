@@ -268,7 +268,7 @@ pkg update
 
 svcadm disable autofs
 
-
+umount /home
 
 
 
