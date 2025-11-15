@@ -266,6 +266,9 @@ bootadm set-menu timeout=1
 pkg update
 
 
+svcadm disable autofs
+
+
 
 
 
