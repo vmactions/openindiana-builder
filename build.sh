@@ -523,8 +523,8 @@ else
     exit 1
   fi
   #check if the /home dir is writable
-  ssh $osname sh "mkdir -p $HOME/work"
-  ssh $osname sh "ls -lah $HOME"
+  ssh $osname mkdir -p $HOME/work
+  ssh $osname ls -lah $HOME
 fi
 
 echo "Build finished."
