@@ -238,12 +238,12 @@ echo "e1000g0=$e1000g0"
 
 cat > /etc/init.d/enable-$e1000g0 << 'EOF'
 #!/bin/sh
-# Auto-enable $e1000g0 interface at boot
+# Auto-enable e1000g0 interface at boot
 
 case "$1" in
 start)
-    /usr/sbin/ifconfig $e1000g0 plumb up 2>/dev/null
-    /usr/sbin/ifconfig $e1000g0 dhcp start 2>/dev/null
+    /usr/sbin/ifconfig e1000g0 plumb up 2>/dev/null
+    /usr/sbin/ifconfig e1000g0 dhcp start 2>/dev/null
     ;;
 stop)
     ;;
